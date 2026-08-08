@@ -13,6 +13,8 @@ class InterviewSession:
 
         self.scores = {}
         self.follow_up_used = False
+        self.interview_plan = []
+        self.current_plan_index = 0
         self.done = False
 
 
