@@ -79,3 +79,77 @@ def evaluate_answer(answer, question, objective):
         "reason": "The answer shows limited understanding and needs clarification.",
         "follow_up_needed": True
     }
+def generate_final_feedback(session):
+    evaluations = list(session.scores.values())
+
+    if not evaluations:
+        return {
+            "overall_score": 0,
+            "performance": "No evaluation data available.",
+            "strengths": [],
+            "areas_to_improve": [],
+            "recommendation": "Complete the interview to receive detailed feedback."
+        }
+
+    total_score = sum(
+        evaluation.get("score", 0)
+        for evaluation in evaluations
+    )
+
+    max_score = len(evaluations) * 4
+
+    overall_score = round(
+        (total_score / max_score) * 100
+    )
+
+    strengths = []
+    improvements = []
+
+    for evaluation in evaluations:
+
+        level = evaluation.get("level")
+
+        if level == "strong":
+            strengths.append(
+                evaluation.get(
+                    "reason",
+                    "Demonstrated strong technical understanding."
+                )
+            )
+
+        elif level in ["partial", "weak"]:
+            improvements.append(
+                evaluation.get(
+                    "reason",
+                    "Needs more technical depth."
+                )
+            )
+
+    if overall_score >= 80:
+        performance = "Strong technical performance."
+        recommendation = (
+            "Continue practicing system design and "
+            "advanced production-level scenarios."
+        )
+
+    elif overall_score >= 60:
+        performance = "Good foundation with some areas to strengthen."
+        recommendation = (
+            "Review weaker concepts and practice explaining "
+            "technical decisions in greater depth."
+        )
+
+    else:
+        performance = "Foundational understanding needs improvement."
+        recommendation = (
+            "Revisit the core curriculum topics and practice "
+            "explaining concepts with concrete examples."
+        )
+
+    return {
+        "overall_score": overall_score,
+        "performance": performance,
+        "strengths": strengths,
+        "areas_to_improve": improvements,
+        "recommendation": recommendation
+    }

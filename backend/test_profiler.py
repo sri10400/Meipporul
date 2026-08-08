@@ -6,6 +6,7 @@ from curriculum_loader import get_day
 from question_engine import generate_question
 from evaluator import evaluate_answer
 from interview_engine import generate_follow_up
+from evaluator import generate_final_feedback
 
 
 with open("../data/candidates.json", "r", encoding="utf-8") as file:
@@ -18,43 +19,37 @@ profile = build_candidate_profile(candidate)
 
 plan = create_interview_plan(profile)
 
-print("\nANSWER EVALUATION\n")
+print("\nFINAL FEEDBACK TEST\n")
 
-question = plan[0]
 
-day_data = get_day(question["day"])
+class MockSession:
+    def __init__(self):
+        self.scores = {
+            7: {
+                "score": 4,
+                "level": "strong",
+                "reason": "Strong understanding of embeddings."
+            },
+            8: {
+                "score": 3,
+                "level": "partial",
+                "reason": "Good understanding of vector databases but needs more depth."
+            },
+            10: {
+                "score": 4,
+                "level": "strong",
+                "reason": "Strong understanding of retrieval systems."
+            },
+            16: {
+                "score": 3,
+                "level": "partial",
+                "reason": "Understands API integration but needs more architectural detail."
+            }
+        }
 
-generated_question = generate_question(
-    day_data,
-    question_number=1
-)
 
-answer = (
-    "Embeddings convert text into numerical vector representations "
-    "that capture semantic meaning. Similar concepts are represented "
-    "by vectors that are close together, which allows a vector database "
-    "to perform semantic retrieval."
-)
+mock_session = MockSession()
 
-evaluation = evaluate_answer(
-    answer,
-    generated_question["question"],
-    generated_question["objective"]
-)
+feedback = generate_final_feedback(mock_session)
 
-print("Question:")
-print(generated_question["question"])
-
-print("\nCandidate Answer:")
-print(answer)
-
-print("\nEvaluation:")
-print(evaluation)
-follow_up = generate_follow_up(
-    evaluation,
-    generated_question["question"],
-    generated_question["objective"]
-)
-
-print("\nAdaptive Follow-up:")
-print(follow_up)
+print(feedback)

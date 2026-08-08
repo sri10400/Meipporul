@@ -10,7 +10,10 @@ from interview_engine import (
 )
 from curriculum_loader import get_day
 from question_engine import generate_question
-from evaluator import evaluate_answer
+from evaluator import (
+    evaluate_answer,
+    generate_final_feedback
+)
 
 
 app = FastAPI(title="IntervueAI")
@@ -126,7 +129,7 @@ def interview(request: InterviewRequest):
     evaluation = evaluate_answer(
         request.message,
         session.current_question,
-        day_data.get("objectives", [""])
+        day_data.get("objectives", [""])[0]
     )
 
     # Store score
@@ -169,9 +172,12 @@ def interview(request: InterviewRequest):
 
         session.done = True
 
+        feedback = generate_final_feedback(session)
+
         return {
-            "reply": "Interview completed. Your feedback is being prepared.",
-            "done": True
+            "reply": "Interview completed.",
+            "done": True,
+            "feedback": feedback
         }
 
     next_item = session.interview_plan[
