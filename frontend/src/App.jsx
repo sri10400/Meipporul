@@ -25,8 +25,28 @@ const questions = [
     text: "How would you improve the quality of results returned by a vector database when the relevant document exists but is not being retrieved?",
   },
   {
+    topic: "Prompt Engineering",
+    text: "You have a prompt that works well for simple questions but produces inconsistent answers for complex tasks. How would you systematically improve it?",
+  },
+  {
     topic: "Agentic AI",
     text: "How would you design an AI agent that can decide when to use a tool and when to answer directly?",
+  },
+  {
+    topic: "MCP",
+    text: "What problem does the Model Context Protocol solve, and when would you choose MCP instead of building a custom tool integration?",
+  },
+  {
+    topic: "AI Deployment",
+    text: "You have built an AI application locally. What would you consider before deploying it for real users?",
+  },
+  {
+    topic: "Production AI",
+    text: "Your AI system is working correctly but response latency has become too high. How would you investigate and improve the system?",
+  },
+  {
+    topic: "AI Systems",
+    text: "You need to build a production AI assistant using several of the technologies you learned during the cohort. Describe the architecture and explain your major engineering decisions.",
   },
 ];
 
@@ -164,36 +184,39 @@ function App() {
           </div>
 
           <section className="journey-card">
-            <div className="section-label">YOUR INTERVIEW JOURNEY</div>
+  <div className="section-label">YOUR INTERVIEW JOURNEY</div>
 
-            <div className="journey">
-              <div className="journey-item completed">
-                <span>✓</span>
-                RAG
-              </div>
+  <div className="journey">
+    {questions.slice(0, 5).map((question, index) => {
+      const topic = question.topic.split(" · ")[0];
+      const isCompleted = index < questionIndex;
+      const isActive = index === questionIndex;
 
-              <div className="journey-line completed-line"></div>
+      return (
+        <div key={topic} className="journey-wrapper">
+          <div
+            className={`journey-item ${
+              isCompleted ? "completed" : ""
+            } ${isActive ? "active" : ""}`}
+          >
+            <span>
+              {isCompleted ? "✓" : isActive ? "→" : "○"}
+            </span>
+            {topic}
+          </div>
 
-              <div className="journey-item active">
-                <span>→</span>
-                {currentQuestion.topic.split(" · ")[0]}
-              </div>
-
-              <div className="journey-line"></div>
-
-              <div className="journey-item">
-                <span>○</span>
-                MCP
-              </div>
-
-              <div className="journey-line"></div>
-
-              <div className="journey-item">
-                <span>○</span>
-                Production
-              </div>
-            </div>
-          </section>
+          {index < 4 && (
+            <div
+              className={`journey-line ${
+                isCompleted ? "completed-line" : ""
+              }`}
+            ></div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</section>
 
           <section className="question-section">
             <div className="question-label">
@@ -210,7 +233,7 @@ function App() {
               <textarea
                 value={answer}
                 onChange={(event) => setAnswer(event.target.value)}
-                placeholder="Explain your approach, reasoning, and engineering decisions..."
+                placeholder="Explain your approach, reasoning, trade-offs, and engineering decisions..."
                 disabled={isEvaluating}
               />
 
@@ -223,9 +246,15 @@ function App() {
 
             {isEvaluating ? (
               <div className="evaluating">
-                <span className="loader"></span>
-                Evaluating your response and preparing the next question...
-              </div>
+  <span className="loader"></span>
+
+  <div>
+    <strong>Analyzing your response</strong>
+    <p>
+      Evaluating technical depth and preparing your next question.
+    </p>
+  </div>
+</div>
             ) : (
               <button
                 className="primary-button submit-button"
