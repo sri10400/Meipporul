@@ -12,7 +12,7 @@ class InterviewSession:
         self.question_count = 0
 
         self.scores = {}
-
+        self.follow_up_used = False
         self.done = False
 
 

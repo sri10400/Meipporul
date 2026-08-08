@@ -64,3 +64,27 @@ def create_interview_plan(profile, minimum_questions=8):
                 })
 
     return plan
+def generate_follow_up(evaluation, question, objective):
+    level = evaluation.get("level")
+
+    if level == "strong":
+        return (
+            "You've explained the core idea well. "
+            "Now go one level deeper: what design trade-offs or "
+            "practical challenges would you consider when applying "
+            "this concept in a production system?"
+        )
+
+    if level == "partial":
+        return (
+            "You have the basic idea. "
+            "Can you explain one practical implementation detail "
+            "that would be important when using this concept in a "
+            "real AI engineering system?"
+        )
+
+    return (
+        "Let's approach it from a simpler angle. "
+        "What is the main purpose of this concept, and why would "
+        "an AI engineer use it?"
+    )
