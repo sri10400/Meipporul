@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
@@ -37,31 +37,51 @@ def root():
 @app.post("/api/interview")
 def interview(request: InterviewRequest):
 
-    session = session_manager.get_session(request.sessionId)
+    # ==========================================
+    # BASIC REQUEST VALIDATION
+    # ==========================================
+
+    session_id = request.sessionId.strip()
+
+    if not session_id:
+        raise HTTPException(
+            status_code=400,
+            detail="sessionId is required."
+        )
+
+    session = session_manager.get_session(session_id)
 
     # ==========================================
     # START NEW INTERVIEW
     # ==========================================
+
     if session is None:
 
         if request.candidate is None:
-            return {
-                "reply": "Candidate information is required to start the interview.",
-                "done": False
-            }
+            raise HTTPException(
+                status_code=400,
+                detail="Candidate information is required to start the interview."
+            )
 
-        profile = build_candidate_profile(request.candidate)
+        try:
+            profile = build_candidate_profile(request.candidate)
 
-        session = session_manager.create_session(
-            session_id=request.sessionId,
-            candidate=request.candidate,
-            profile=profile
-        )
+            session = session_manager.create_session(
+                session_id=session_id,
+                candidate=request.candidate,
+                profile=profile
+            )
 
-        # Create personalized interview plan
-        plan = create_interview_plan(profile)
+            # Create personalized interview plan
+            plan = create_interview_plan(profile)
 
-        session.interview_plan = plan
+            session.interview_plan = plan
+
+        except Exception as error:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unable to create interview plan: {str(error)}"
+            )
 
         if not plan:
             session.done = True
@@ -75,6 +95,12 @@ def interview(request: InterviewRequest):
         first_item = plan[0]
 
         day_data = get_day(first_item["day"])
+
+        if day_data is None:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Curriculum information not found for day {first_item['day']}."
+            )
 
         question_data = generate_question(
             day_data,
@@ -93,26 +119,56 @@ def interview(request: InterviewRequest):
         }
 
     # ==========================================
-    # CONTINUE EXISTING INTERVIEW
+    # PREVENT CONTINUING A COMPLETED INTERVIEW
     # ==========================================
+
+    if session.done:
+        return {
+            "reply": "This interview has already been completed.",
+            "done": True,
+            "feedback": generate_final_feedback(session)
+        }
+
+    # ==========================================
+    # ANSWER VALIDATION
+    # ==========================================
+
     if request.message is None:
         return {
             "reply": "Please provide your answer.",
             "done": False
         }
 
-    # Save candidate answer
-    session.answers.append(request.message)
+    answer = request.message.strip()
 
-    # Find current plan item
+    if not answer:
+        return {
+            "reply": "Your answer cannot be empty. Please provide a response.",
+            "done": False
+        }
+
+    # ==========================================
+    # SAVE CANDIDATE ANSWER
+    # ==========================================
+
+    session.answers.append(answer)
+
+    # ==========================================
+    # FIND CURRENT PLAN ITEM
+    # ==========================================
+
     current_index = session.current_plan_index
 
     if current_index >= len(session.interview_plan):
+
         session.done = True
+
+        feedback = generate_final_feedback(session)
 
         return {
             "reply": "Interview completed.",
-            "done": True
+            "done": True,
+            "feedback": feedback
         }
 
     current_item = session.interview_plan[current_index]
@@ -120,16 +176,29 @@ def interview(request: InterviewRequest):
     day_data = get_day(current_item["day"])
 
     if day_data is None:
-        return {
-            "reply": "Curriculum information could not be found.",
-            "done": False
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Curriculum information not found for day {current_item['day']}."
+        )
 
-    # Evaluate answer
+    objectives = day_data.get("objectives", [])
+
+    if not objectives:
+        raise HTTPException(
+            status_code=500,
+            detail=f"No learning objectives found for day {current_item['day']}."
+        )
+
+    objective = objectives[0]
+
+    # ==========================================
+    # EVALUATE ANSWER
+    # ==========================================
+
     evaluation = evaluate_answer(
-        request.message,
+        answer,
         session.current_question,
-        day_data.get("objectives", [""])[0]
+        objective
     )
 
     # Store score
@@ -138,6 +207,7 @@ def interview(request: InterviewRequest):
     # ==========================================
     # ADAPTIVE FOLLOW-UP
     # ==========================================
+
     if (
         evaluation.get("follow_up_needed")
         and not session.follow_up_used
@@ -146,7 +216,7 @@ def interview(request: InterviewRequest):
         follow_up = generate_follow_up(
             evaluation,
             session.current_question,
-            day_data.get("objectives", [""])[0]
+            objective
         )
 
         session.current_question = follow_up
@@ -167,7 +237,10 @@ def interview(request: InterviewRequest):
     session.follow_up_used = False
     session.current_plan_index += 1
 
-    # Check whether interview is finished
+    # ==========================================
+    # CHECK INTERVIEW COMPLETION
+    # ==========================================
+
     if session.current_plan_index >= len(session.interview_plan):
 
         session.done = True
@@ -180,11 +253,21 @@ def interview(request: InterviewRequest):
             "feedback": feedback
         }
 
+    # ==========================================
+    # GENERATE NEXT QUESTION
+    # ==========================================
+
     next_item = session.interview_plan[
         session.current_plan_index
     ]
 
     next_day_data = get_day(next_item["day"])
+
+    if next_day_data is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Curriculum information not found for day {next_item['day']}."
+        )
 
     next_question = generate_question(
         next_day_data,
