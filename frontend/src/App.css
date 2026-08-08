@@ -778,3 +778,50 @@
   color: #666d76;
   font-size: 10px;
 }
+.result-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 22px;
+  padding: 7px 10px;
+  border: 1px solid #29352f;
+  border-radius: 6px;
+  color: #8db19d;
+  background: #101612;
+  font-size: 10px;
+}
+
+.result-status span {
+  font-weight: 700;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.section-heading p {
+  margin: 6px 0 0;
+  color: #5f6670;
+  font-size: 10px;
+}
+
+.overall-score {
+  color: #d9dce0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.results-card {
+  margin-bottom: 10px;
+}
+
+.results-actions {
+  margin-top: 30px;
+}
+
+.results-actions .secondary-button {
+  margin-top: 9px;
+}

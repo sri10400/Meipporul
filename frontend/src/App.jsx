@@ -286,84 +286,124 @@ function App() {
       )}
 
       {screen === "results" && (
-        <main className="page results-page">
-          <section className="results-header">
-            <div className="eyebrow">INTERVIEW COMPLETE</div>
+  <main className="page results-page">
+    <section className="results-header">
+      <div className="eyebrow">INTERVIEW COMPLETE</div>
 
-            <div className="score-circle">
-              <strong>82</strong>
-              <span>/100</span>
-            </div>
+      <div className="result-status">
+        <span>✓</span> Technical interview completed
+      </div>
 
-            <h1>Strong performance.</h1>
+      <div className="score-circle">
+        <strong>82</strong>
+        <span>/100</span>
+      </div>
 
-            <p>
-              You demonstrated strong technical reasoning across modern AI
-              engineering concepts.
-            </p>
-          </section>
+      <h1>Strong technical performance.</h1>
 
-          <section className="results-card">
-            <div className="section-label">TECHNICAL AREAS</div>
+      <p>
+        You demonstrated solid understanding of modern AI systems with
+        particularly strong reasoning around retrieval and agentic
+        architectures.
+      </p>
+    </section>
 
-            <ScoreRow name="RAG" score={91} />
-            <ScoreRow name="Vector Search" score={78} />
-            <ScoreRow name="Agentic AI" score={88} />
-            <ScoreRow name="MCP" score={74} />
-            <ScoreRow name="Production AI" score={69} />
-          </section>
+    <section className="results-card">
+      <div className="section-heading">
+        <div>
+          <div className="section-label">TECHNICAL PERFORMANCE</div>
+          <p>How you performed across the interview topics.</p>
+        </div>
+        <span className="overall-score">82%</span>
+      </div>
 
-          <section className="feedback-grid">
-            <div className="feedback-card">
-              <div className="feedback-icon positive">+</div>
-              <div>
-                <div className="section-label">STRENGTHS</div>
-                <ul>
-                  <li>Strong RAG architecture understanding</li>
-                  <li>Good reasoning around agent workflows</li>
-                </ul>
-              </div>
-            </div>
+      <ScoreRow name="RAG & Retrieval" score={91} />
+      <ScoreRow name="Vector Databases" score={78} />
+      <ScoreRow name="Prompt Engineering" score={84} />
+      <ScoreRow name="Agentic AI" score={88} />
+      <ScoreRow name="MCP" score={74} />
+      <ScoreRow name="Production AI" score={69} />
+    </section>
 
-            <div className="feedback-card">
-              <div className="feedback-icon warning">!</div>
-              <div>
-                <div className="section-label">AREAS TO IMPROVE</div>
-                <ul>
-                  <li>MCP failure handling</li>
-                  <li>Production deployment strategy</li>
-                </ul>
-              </div>
-            </div>
-          </section>
+    <section className="feedback-grid">
+      <div className="feedback-card">
+        <div className="feedback-icon positive">+</div>
 
-          <section className="next-steps">
-            <div className="section-label">RECOMMENDED NEXT STEPS</div>
+        <div>
+          <div className="section-label">STRENGTHS</div>
 
-            <div className="next-step">
-              <span>01</span>
-              <div>
-                <strong>Review Day 24</strong>
-                <p>MCP integration and failure handling</p>
-              </div>
-              <span>→</span>
-            </div>
+          <ul>
+            <li>Strong RAG architecture understanding</li>
+            <li>Good reasoning around agent workflows</li>
+            <li>Clear explanation of technical trade-offs</li>
+          </ul>
+        </div>
+      </div>
 
-            <div className="next-step">
-              <span>02</span>
-              <div>
-                <strong>Review Day 28</strong>
-                <p>Deployment and production systems</p>
-              </div>
-              <span>→</span>
-            </div>
-          </section>
+      <div className="feedback-card">
+        <div className="feedback-icon warning">!</div>
 
-          <button className="secondary-button" onClick={restartInterview}>
-            Take another interview
-          </button>
-        </main>
-      )}
+        <div>
+          <div className="section-label">KNOWLEDGE GAPS</div>
+
+          <ul>
+            <li>MCP failure handling</li>
+            <li>Production deployment strategy</li>
+            <li>AI system observability</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section className="next-steps">
+      <div className="section-label">RECOMMENDED NEXT STEPS</div>
+
+      <div className="next-step">
+        <span>01</span>
+
+        <div>
+          <strong>Review MCP architecture</strong>
+          <p>Focus on tool communication and failure handling.</p>
+        </div>
+
+        <span>→</span>
+      </div>
+
+      <div className="next-step">
+        <span>02</span>
+
+        <div>
+          <strong>Study production AI systems</strong>
+          <p>Review deployment, monitoring, and reliability patterns.</p>
+        </div>
+
+        <span>→</span>
+      </div>
+
+      <div className="next-step">
+        <span>03</span>
+
+        <div>
+          <strong>Practice system design</strong>
+          <p>Explain complete AI architectures and engineering trade-offs.</p>
+        </div>
+
+        <span>→</span>
+      </div>
+    </section>
+
+    <div className="results-actions">
+      <button className="primary-button" onClick={restartInterview}>
+        Take another interview
+        <span>→</span>
+      </button>
+
+      <button className="secondary-button">
+        View interview summary
+      </button>
+    </div>
+  </main>
+)}
 
       <footer className="footer">
         <span>INTERVUEAI</span>
