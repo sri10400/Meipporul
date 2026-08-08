@@ -55,15 +55,19 @@ function App() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [error, setError] = useState("");
 
   const currentQuestion = questions[questionIndex];
 
   const startInterview = () => {
     setScreen("interview");
   };
-
+  
   const submitAnswer = () => {
-    if (!answer.trim()) return;
+    if (!answer.trim()) {
+  setError("Please provide an answer before continuing.");
+  return;
+}
 
     setIsEvaluating(true);
 
@@ -232,7 +236,10 @@ function App() {
 
               <textarea
                 value={answer}
-                onChange={(event) => setAnswer(event.target.value)}
+                onChange={(event) => {
+  setAnswer(event.target.value);
+  setError("");
+}}
                 placeholder="Explain your approach, reasoning, trade-offs, and engineering decisions..."
                 disabled={isEvaluating}
               />
@@ -243,6 +250,12 @@ function App() {
                 <span>Be specific. Think like an engineer.</span>
               </div>
             </div>
+            {error && (
+  <div className="error-message">
+    <span>!</span>
+    {error}
+  </div>
+)}
 
             {isEvaluating ? (
               <div className="evaluating">
