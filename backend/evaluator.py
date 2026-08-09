@@ -106,24 +106,16 @@ def generate_final_feedback(session):
     improvements = []
 
     for evaluation in evaluations:
-
         level = evaluation.get("level")
+        reason = evaluation.get("reason")
 
         if level == "strong":
-            strengths.append(
-                evaluation.get(
-                    "reason",
-                    "Demonstrated strong technical understanding."
-                )
-            )
+            if reason and reason not in strengths:
+                strengths.append(reason)
 
         elif level in ["partial", "weak"]:
-            improvements.append(
-                evaluation.get(
-                    "reason",
-                    "Needs more technical depth."
-                )
-            )
+            if reason and reason not in improvements:
+                improvements.append(reason)
 
     if overall_score >= 80:
         performance = "Strong technical performance."
