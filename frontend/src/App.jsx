@@ -1,10 +1,81 @@
 import { useState } from "react";
+import {
+  startInterview as startInterviewApi,
+  sendAnswer,
+} from "./services/interviewApi";
 import "./App.css";
 
 const candidate = {
   name: "Emily Chen",
   role: "AI Engineer",
   experience: "6 years experience",
+
+  // Candidate data expected by the FastAPI backend
+  member: {
+    id: "candidate-emily-001",
+    name: "Emily Chen",
+    jobRole: "AI Engineer",
+    yearsExperience: 6,
+    education: "Computer Science",
+    status: "active",
+  },
+
+  missions: [
+    {
+      day: 1,
+      title: "Embeddings Explained",
+      passed: true,
+      attempts: 1,
+    },
+    {
+      day: 2,
+      title: "Vector Databases Overview",
+      passed: true,
+      attempts: 1,
+    },
+    {
+      day: 3,
+      title: "The Retrieval & Matching Engine",
+      passed: true,
+      attempts: 2,
+    },
+    {
+      day: 4,
+      title: "RAG End-to-End & LLM API Basics",
+      passed: true,
+      attempts: 2,
+    },
+    {
+      day: 5,
+      title: "Prompt Engineering Fundamentals",
+      passed: true,
+      attempts: 1,
+    },
+    {
+      day: 6,
+      title: "Advanced Prompting: Function Calling",
+      passed: true,
+      attempts: 2,
+    },
+    {
+      day: 7,
+      title: "Agentic Frameworks: LangChain Agents",
+      passed: true,
+      attempts: 2,
+    },
+    {
+      day: 8,
+      title: "Multi-Agent Orchestration",
+      passed: true,
+      attempts: 2,
+    },
+  ],
+
+  signals: {
+    commitDays: 31,
+    missionsCompleted: 8,
+    missionsFirstTry: 4,
+  },
 };
 
 const topics = [
@@ -15,41 +86,6 @@ const topics = [
   "Production AI",
 ];
 
-const questions = [
-  {
-    topic: "RAG · Retrieval",
-    text: "Your healthcare chatbot needs to choose between SQL, vector search, and hybrid retrieval. How would you design this?",
-  },
-  {
-    topic: "Vector Databases",
-    text: "How would you improve the quality of results returned by a vector database when the relevant document exists but is not being retrieved?",
-  },
-  {
-    topic: "Prompt Engineering",
-    text: "You have a prompt that works well for simple questions but produces inconsistent answers for complex tasks. How would you systematically improve it?",
-  },
-  {
-    topic: "Agentic AI",
-    text: "How would you design an AI agent that can decide when to use a tool and when to answer directly?",
-  },
-  {
-    topic: "MCP",
-    text: "What problem does the Model Context Protocol solve, and when would you choose MCP instead of building a custom tool integration?",
-  },
-  {
-    topic: "AI Deployment",
-    text: "You have built an AI application locally. What would you consider before deploying it for real users?",
-  },
-  {
-    topic: "Production AI",
-    text: "Your AI system is working correctly but response latency has become too high. How would you investigate and improve the system?",
-  },
-  {
-    topic: "AI Systems",
-    text: "You need to build a production AI assistant using several of the technologies you learned during the cohort. Describe the architecture and explain your major engineering decisions.",
-  },
-];
-
 function App() {
   const [screen, setScreen] = useState("start");
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -57,37 +93,133 @@ function App() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [error, setError] = useState("");
 
-  const currentQuestion = questions[questionIndex];
+  const [sessionId, setSessionId] = useState("");
+  const [currentQuestion, setCurrentQuestion] = useState("");
+  const [feedback, setFeedback] = useState(null);
 
-  const startInterview = () => {
-    setScreen("interview");
-  };
-  
-  const submitAnswer = () => {
-    if (!answer.trim()) {
-  setError("Please provide an answer before continuing.");
-  return;
-}
+  const handleStartInterview = async () => {
+    try {
+      setError("");
+      setFeedback(null);
+      setAnswer("");
+      setQuestionIndex(0);
+      setIsEvaluating(true);
 
-    setIsEvaluating(true);
+      const newSessionId = `session-${Date.now()}`;
 
-    setTimeout(() => {
+      console.log("STARTING BACKEND INTERVIEW...");
+
+      const response = await startInterviewApi(
+        newSessionId,
+        candidate
+      );
+
+      console.log("BACKEND START RESPONSE:", response);
+
+      if (!response || !response.reply) {
+        throw new Error(
+          "Backend did not return the first interview question."
+        );
+      }
+
+      setSessionId(newSessionId);
+      setCurrentQuestion(response.reply);
+      setScreen("interview");
+    } catch (error) {
+      console.error("START INTERVIEW ERROR:", error);
+
+      setError(
+        error.message || "Unable to start interview."
+      );
+    } finally {
       setIsEvaluating(false);
+    }
+  };
+
+  const submitAnswer = async () => {
+    if (!answer.trim()) {
+      setError(
+        "Please provide an answer before continuing."
+      );
+      return;
+    }
+
+    if (!sessionId) {
+      setError(
+        "Interview session is not available. Please restart the interview."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+      setIsEvaluating(true);
+
+      console.log("SENDING ANSWER TO BACKEND...");
+
+      const response = await sendAnswer(
+        sessionId,
+        answer
+      );
+
+      console.log(
+        "BACKEND ANSWER RESPONSE:",
+        response
+      );
+
       setAnswer("");
 
-      if (questionIndex < questions.length - 1) {
-        setQuestionIndex((previous) => previous + 1);
-      } else {
+      if (response.done) {
+        setFeedback(response.feedback || null);
         setScreen("results");
+        return;
       }
-    }, 900);
+
+      if (!response.reply) {
+        throw new Error(
+          "Backend did not return the next question."
+        );
+      }
+
+      setCurrentQuestion(response.reply);
+
+      setQuestionIndex(
+        (previous) => previous + 1
+      );
+    } catch (error) {
+      console.error(
+        "SUBMIT ANSWER ERROR:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Unable to submit your answer."
+      );
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   const restartInterview = () => {
     setQuestionIndex(0);
     setAnswer("");
+    setSessionId("");
+    setCurrentQuestion("");
+    setFeedback(null);
+    setError("");
+    setIsEvaluating(false);
     setScreen("start");
   };
+
+  const overallScore =
+    feedback?.overall_score ?? 0;
+
+  const strengths =
+    feedback?.strengths || [];
+
+  const areasToImprove =
+    feedback?.areas_to_improve || [];
 
   return (
     <div className="app">
@@ -103,10 +235,16 @@ function App() {
         </div>
       </header>
 
+      {/* =========================
+          START SCREEN
+      ========================= */}
+
       {screen === "start" && (
         <main className="page start-page">
           <section className="hero-section">
-            <div className="eyebrow">AI ENGINEERING INTERVIEW</div>
+            <div className="eyebrow">
+              AI ENGINEERING INTERVIEW
+            </div>
 
             <h1>
               Show what you
@@ -114,8 +252,9 @@ function App() {
             </h1>
 
             <p className="hero-description">
-              A personalized technical interview that adapts to your learning
-              journey, answers, and technical depth.
+              A personalized technical interview
+              that adapts to your learning journey,
+              answers, and technical depth.
             </p>
 
             <div className="candidate-card">
@@ -123,20 +262,32 @@ function App() {
 
               <div>
                 <h2>{candidate.name}</h2>
+
                 <p>
-                  {candidate.role} · {candidate.experience}
+                  {candidate.role} ·{" "}
+                  {candidate.experience}
                 </p>
               </div>
 
-              <div className="candidate-badge">COHORT</div>
+              <div className="candidate-badge">
+                COHORT
+              </div>
             </div>
 
-            <div className="section-label">INTERVIEW COVERAGE</div>
+            <div className="section-label">
+              INTERVIEW COVERAGE
+            </div>
 
             <div className="topic-grid">
               {topics.map((topic, index) => (
-                <div className="topic-chip" key={topic}>
-                  <span className="topic-number">0{index + 1}</span>
+                <div
+                  className="topic-chip"
+                  key={topic}
+                >
+                  <span className="topic-number">
+                    0{index + 1}
+                  </span>
+
                   {topic}
                 </div>
               ))}
@@ -159,115 +310,183 @@ function App() {
               </div>
             </div>
 
-            <button className="primary-button" onClick={startInterview}>
-              Start interview
+            {error && (
+              <div className="error-message">
+                <span>!</span>
+                {error}
+              </div>
+            )}
+
+            <button
+              className="primary-button"
+              onClick={handleStartInterview}
+              disabled={isEvaluating}
+            >
+              {isEvaluating
+                ? "Starting interview..."
+                : "Start interview"}
+
               <span>→</span>
             </button>
 
             <p className="privacy-note">
-              Your interview is personalized from your cohort learning
-              journey.
+              Your interview is personalized from
+              your cohort learning journey.
             </p>
           </section>
         </main>
       )}
 
+      {/* =========================
+          INTERVIEW SCREEN
+      ========================= */}
+
       {screen === "interview" && (
         <main className="page interview-page">
           <div className="interview-header">
             <div>
-              <div className="eyebrow">TECHNICAL INTERVIEW</div>
+              <div className="eyebrow">
+                TECHNICAL INTERVIEW
+              </div>
+
               <h1>{candidate.name}</h1>
+
               <p>{candidate.role}</p>
             </div>
 
             <div className="question-count">
-              <strong>{questionIndex + 1}</strong>
+              <strong>
+                {questionIndex + 1}
+              </strong>
+
               <span>/ 8+</span>
             </div>
           </div>
 
           <section className="journey-card">
-  <div className="section-label">YOUR INTERVIEW JOURNEY</div>
+            <div className="section-label">
+              YOUR INTERVIEW JOURNEY
+            </div>
 
-  <div className="journey">
-    {questions.slice(0, 5).map((question, index) => {
-      const topic = question.topic.split(" · ")[0];
-      const isCompleted = index < questionIndex;
-      const isActive = index === questionIndex;
+            <div className="journey">
+              {topics.map((topic, index) => {
+                const isCompleted =
+                  index < questionIndex;
 
-      return (
-        <div key={topic} className="journey-wrapper">
-          <div
-            className={`journey-item ${
-              isCompleted ? "completed" : ""
-            } ${isActive ? "active" : ""}`}
-          >
-            <span>
-              {isCompleted ? "✓" : isActive ? "→" : "○"}
-            </span>
-            {topic}
-          </div>
+                const isActive =
+                  index === questionIndex;
 
-          {index < 4 && (
-            <div
-              className={`journey-line ${
-                isCompleted ? "completed-line" : ""
-              }`}
-            ></div>
-          )}
-        </div>
-      );
-    })}
-  </div>
-</section>
+                return (
+                  <div
+                    key={topic}
+                    className="journey-wrapper"
+                  >
+                    <div
+                      className={`journey-item ${
+                        isCompleted
+                          ? "completed"
+                          : ""
+                      } ${
+                        isActive
+                          ? "active"
+                          : ""
+                      }`}
+                    >
+                      <span>
+                        {isCompleted
+                          ? "✓"
+                          : isActive
+                          ? "→"
+                          : "○"}
+                      </span>
+
+                      {topic}
+                    </div>
+
+                    {index <
+                      topics.length - 1 && (
+                      <div
+                        className={`journey-line ${
+                          isCompleted
+                            ? "completed-line"
+                            : ""
+                        }`}
+                      ></div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <section className="question-section">
             <div className="question-label">
-              QUESTION {String(questionIndex + 1).padStart(2, "0")}
+              QUESTION{" "}
+              {String(
+                questionIndex + 1
+              ).padStart(2, "0")}
             </div>
 
-            <div className="question-topic">{currentQuestion.topic}</div>
+            <div className="question-topic">
+              ADAPTIVE TECHNICAL QUESTION
+            </div>
 
-            <h2>{currentQuestion.text}</h2>
+            <h2>
+              {currentQuestion ||
+                "Preparing your question..."}
+            </h2>
 
             <div className="answer-area">
-              <div className="answer-label">YOUR RESPONSE</div>
+              <div className="answer-label">
+                YOUR RESPONSE
+              </div>
 
               <textarea
                 value={answer}
                 onChange={(event) => {
-  setAnswer(event.target.value);
-  setError("");
-}}
+                  setAnswer(
+                    event.target.value
+                  );
+                  setError("");
+                }}
                 placeholder="Explain your approach, reasoning, trade-offs, and engineering decisions..."
                 disabled={isEvaluating}
               />
 
               <div className="answer-footer">
-                <span>{answer.trim().length} characters</span>
+                <span>
+                  {answer.trim().length} characters
+                </span>
 
-                <span>Be specific. Think like an engineer.</span>
+                <span>
+                  Be specific. Think like an engineer.
+                </span>
               </div>
             </div>
+
             {error && (
-  <div className="error-message">
-    <span>!</span>
-    {error}
-  </div>
-)}
+              <div className="error-message">
+                <span>!</span>
+                {error}
+              </div>
+            )}
 
             {isEvaluating ? (
               <div className="evaluating">
-  <span className="loader"></span>
+                <span className="loader"></span>
 
-  <div>
-    <strong>Analyzing your response</strong>
-    <p>
-      Evaluating technical depth and preparing your next question.
-    </p>
-  </div>
-</div>
+                <div>
+                  <strong>
+                    Analyzing your response
+                  </strong>
+
+                  <p>
+                    Evaluating technical depth
+                    and preparing your next
+                    question.
+                  </p>
+                </div>
+              </div>
             ) : (
               <button
                 className="primary-button submit-button"
@@ -282,15 +501,29 @@ function App() {
 
           <div className="progress-section">
             <div className="progress-info">
-              <span>Interview progress</span>
-              <strong>{Math.round(((questionIndex + 1) / 8) * 100)}%</strong>
+              <span>
+                Interview progress
+              </span>
+
+              <strong>
+                {Math.min(
+                  questionIndex + 1,
+                  8
+                )}
+                /8+
+              </strong>
             </div>
 
             <div className="progress-track">
               <div
                 className="progress-fill"
                 style={{
-                  width: `${Math.min(((questionIndex + 1) / 8) * 100, 100)}%`,
+                  width: `${Math.min(
+                    ((questionIndex + 1) /
+                      8) *
+                      100,
+                    100
+                  )}%`,
                 }}
               ></div>
             </div>
@@ -298,129 +531,185 @@ function App() {
         </main>
       )}
 
+      {/* =========================
+          RESULTS SCREEN
+      ========================= */}
+
       {screen === "results" && (
-  <main className="page results-page">
-    <section className="results-header">
-      <div className="eyebrow">INTERVIEW COMPLETE</div>
+        <main className="page results-page">
+          <section className="results-header">
+            <div className="eyebrow">
+              INTERVIEW COMPLETE
+            </div>
 
-      <div className="result-status">
-        <span>✓</span> Technical interview completed
-      </div>
+            <div className="result-status">
+              <span>✓</span>{" "}
+              Technical interview completed
+            </div>
 
-      <div className="score-circle">
-        <strong>82</strong>
-        <span>/100</span>
-      </div>
+            <div className="score-circle">
+              <strong>
+                {overallScore}
+              </strong>
 
-      <h1>Strong technical performance.</h1>
+              <span>/100</span>
+            </div>
 
-      <p>
-        You demonstrated solid understanding of modern AI systems with
-        particularly strong reasoning around retrieval and agentic
-        architectures.
-      </p>
-    </section>
+            <h1>
+              {feedback?.performance ||
+                "Interview completed."}
+            </h1>
 
-    <section className="results-card">
-      <div className="section-heading">
-        <div>
-          <div className="section-label">TECHNICAL PERFORMANCE</div>
-          <p>How you performed across the interview topics.</p>
-        </div>
-        <span className="overall-score">82%</span>
-      </div>
+            <p>
+              {feedback?.recommendation ||
+                "Your interview has been evaluated based on your technical explanations, reasoning, and understanding of the covered topics."}
+            </p>
+          </section>
 
-      <ScoreRow name="RAG & Retrieval" score={91} />
-      <ScoreRow name="Vector Databases" score={78} />
-      <ScoreRow name="Prompt Engineering" score={84} />
-      <ScoreRow name="Agentic AI" score={88} />
-      <ScoreRow name="MCP" score={74} />
-      <ScoreRow name="Production AI" score={69} />
-    </section>
+          {/* TECHNICAL PERFORMANCE */}
 
-    <section className="feedback-grid">
-      <div className="feedback-card">
-        <div className="feedback-icon positive">+</div>
+          <section className="results-card">
+            <div className="section-heading">
+              <div>
+                <div className="section-label">
+                  TECHNICAL PERFORMANCE
+                </div>
 
-        <div>
-          <div className="section-label">STRENGTHS</div>
+                <p>
+                  How you performed across the
+                  interview.
+                </p>
+              </div>
 
-          <ul>
-            <li>Strong RAG architecture understanding</li>
-            <li>Good reasoning around agent workflows</li>
-            <li>Clear explanation of technical trade-offs</li>
-          </ul>
-        </div>
-      </div>
+              <span className="overall-score">
+                {overallScore}%
+              </span>
+            </div>
 
-      <div className="feedback-card">
-        <div className="feedback-icon warning">!</div>
+            <ScoreRow
+              name="Overall Technical Performance"
+              score={overallScore}
+            />
+          </section>
 
-        <div>
-          <div className="section-label">KNOWLEDGE GAPS</div>
+          {/* FEEDBACK */}
 
-          <ul>
-            <li>MCP failure handling</li>
-            <li>Production deployment strategy</li>
-            <li>AI system observability</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+          <section className="feedback-grid">
+            {/* STRENGTHS */}
 
-    <section className="next-steps">
-      <div className="section-label">RECOMMENDED NEXT STEPS</div>
+            <div className="feedback-card">
+              <div className="feedback-icon positive">
+                +
+              </div>
 
-      <div className="next-step">
-        <span>01</span>
+              <div>
+                <div className="section-label">
+                  STRENGTHS
+                </div>
 
-        <div>
-          <strong>Review MCP architecture</strong>
-          <p>Focus on tool communication and failure handling.</p>
-        </div>
+                {strengths.length > 0 ? (
+                  <ul>
+                    {strengths.map(
+                      (strength, index) => (
+                        <li key={index}>
+                          {strength}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                ) : (
+                  <p>
+                    No specific strengths were
+                    identified in this interview.
+                  </p>
+                )}
+              </div>
+            </div>
 
-        <span>→</span>
-      </div>
+            {/* AREAS TO IMPROVE */}
 
-      <div className="next-step">
-        <span>02</span>
+            <div className="feedback-card">
+              <div className="feedback-icon warning">
+                !
+              </div>
 
-        <div>
-          <strong>Study production AI systems</strong>
-          <p>Review deployment, monitoring, and reliability patterns.</p>
-        </div>
+              <div>
+                <div className="section-label">
+                  AREAS TO IMPROVE
+                </div>
 
-        <span>→</span>
-      </div>
+                {areasToImprove.length >
+                0 ? (
+                  <ul>
+                    {areasToImprove.map(
+                      (area, index) => (
+                        <li key={index}>
+                          {area}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                ) : (
+                  <p>
+                    No major improvement areas
+                    identified.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
 
-      <div className="next-step">
-        <span>03</span>
+          {/* RECOMMENDED NEXT STEPS */}
 
-        <div>
-          <strong>Practice system design</strong>
-          <p>Explain complete AI architectures and engineering trade-offs.</p>
-        </div>
+          <section className="next-steps">
+            <div className="section-label">
+              RECOMMENDED NEXT STEP
+            </div>
 
-        <span>→</span>
-      </div>
-    </section>
+            <div className="next-step">
+              <span>01</span>
 
-    <div className="results-actions">
-      <button className="primary-button" onClick={restartInterview}>
-        Take another interview
-        <span>→</span>
-      </button>
+              <div>
+                <strong>
+                  Continue building your
+                  technical depth
+                </strong>
 
-      <button className="secondary-button">
-        View interview summary
-      </button>
-    </div>
-  </main>
-)}
+                <p>
+                  {feedback?.recommendation ||
+                    "Review the interview topics and continue practicing technical explanations."}
+                </p>
+              </div>
+
+              <span>→</span>
+            </div>
+          </section>
+
+          {/* ACTIONS */}
+
+          <div className="results-actions">
+            <button
+              className="primary-button"
+              onClick={restartInterview}
+            >
+              Take another interview
+              <span>→</span>
+            </button>
+
+            <button className="secondary-button">
+              View interview summary
+            </button>
+          </div>
+        </main>
+      )}
 
       <footer className="footer">
         <span>INTERVUEAI</span>
-        <span>Adaptive technical interviews for AI engineers.</span>
+
+        <span>
+          Adaptive technical interviews for AI
+          engineers.
+        </span>
       </footer>
     </div>
   );
@@ -431,11 +720,17 @@ function ScoreRow({ name, score }) {
     <div className="score-row">
       <div className="score-row-header">
         <span>{name}</span>
+
         <strong>{score}%</strong>
       </div>
 
       <div className="score-track">
-        <div className="score-fill" style={{ width: `${score}%` }}></div>
+        <div
+          className="score-fill"
+          style={{
+            width: `${score}%`,
+          }}
+        ></div>
       </div>
     </div>
   );
